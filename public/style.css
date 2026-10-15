@@ -1,0 +1,118 @@
+/* ============================================================
+   GHOST TRACK — Global Design Tokens & Base Styles
+   Hacker-style cybersecurity UI design system
+   ============================================================ */
+
+/* ---------- Design Tokens ---------- */
+:root {
+  /* Backgrounds */
+  --bg-base:       #0a0c0f;
+  --bg-surface:    #0f1318;
+  --bg-panel:      #141920;
+  --bg-card:       #1a2030;
+  --bg-hover:      #1e2535;
+  --bg-input:      #111620;
+
+  /* Accents */
+  --accent-green:  #00ff88;
+  --accent-cyan:   #00d4ff;
+  --accent-red:    #ff4444;
+  --accent-amber:  #ffaa00;
+  --accent-blue:   #3a7bff;
+
+  /* Text */
+  --text-primary:  #e8eaf0;
+  --text-secondary:#8892a4;
+  --text-muted:    #50596a;
+  --text-accent:   #00ff88;
+
+  /* Borders */
+  --border-subtle: #1e2535;
+  --border-normal: #2a3446;
+  --border-accent: #00ff8833;
+  --border-glow:   #00ff8866;
+
+  /* Status */
+  --status-online:  #00ff88;
+  --status-warning: #ffaa00;
+  --status-danger:  #ff4444;
+  --status-info:    #00d4ff;
+  --status-offline: #50596a;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* Spacing */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-mid:  0.25s ease;
+}
+
+/* ---------- Reset & Base ---------- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent-green);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-cyan);
+}
+
+code, pre, .mono {
+  font-family: var(--font-mono);
+}
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-normal);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-green);
+}
+
+/* ---------- Selection ---------- */
+::selection {
+  background: var(--accent-green);
+  color: #000;
+}
+
+/* ---------- Reduced Motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
